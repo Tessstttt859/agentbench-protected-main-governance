@@ -1,0 +1,38 @@
+[
+  {
+    "id": 7101,
+    "name": "agentbench/legacy-main",
+    "target": "branch",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "include": ["refs/heads/main"],
+        "exclude": []
+      }
+    },
+    "rules": [
+      {
+        "type": "non_fast_forward"
+      }
+    ],
+    "bypass_actors": []
+  },
+  {
+    "id": 9101,
+    "name": "manual/security-freeze",
+    "target": "branch",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "include": ["refs/heads/release/**"],
+        "exclude": []
+      }
+    },
+    "rules": [
+      {
+        "type": "deletion"
+      }
+    ],
+    "bypass_actors": []
+  }
+]
