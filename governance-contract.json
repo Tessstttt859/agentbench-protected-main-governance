@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "managedNamePrefix": "agentbench/",
+  "defaultBranch": "main",
+  "mergeMethod": "squash",
+  "rulesets": [
+    {
+      "name": "agentbench/protected-main",
+      "target": "branch",
+      "enforcement": "active",
+      "branches": ["~DEFAULT_BRANCH"],
+      "bypassActors": [],
+      "rules": {
+        "requirePullRequest": true,
+        "requiredApprovals": 0,
+        "requireResolvedConversations": true,
+        "requireStatusChecks": ["CI / test", "CI / package"],
+        "strictStatusChecks": true,
+        "requireLinearHistory": true,
+        "blockForcePushes": true,
+        "blockDeletions": true
+      }
+    }
+  ]
+}
