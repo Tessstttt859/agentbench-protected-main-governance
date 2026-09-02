@@ -36,6 +36,37 @@ describe("GitHub client", () => {
       { method: "DELETE", path: "/repos/octo/repository/rulesets/72" }
     ]);
   });
+
+  it("loads details for summary rulesets and validates repository and branch responses", async () => {
+    const transport = new RecordingTransport();
+    transport.queue([{ id: 42, name: "agentbench/protected-main" }]);
+    transport.queue(expectedRuleset(42));
+    transport.queue({ default_branch: "main" });
+    transport.queue({ commit: { sha: "abc123" } });
+    const client = new GitHubClient("octo", "repository", transport);
+    await expect(client.listRulesets()).resolves.toEqual([expectedRuleset(42)]);
+    await expect(client.getDefaultBranch()).resolves.toBe("main");
+    await expect(client.getBranchHead("main")).resolves.toBe("abc123");
+  });
+
+  it("paginates check runs and rejects malformed API shapes", async () => {
+    const transport = new RecordingTransport();
+    transport.queue({ check_runs: [{ name: "CI / test" }] }, 200, {
+      link: '<https://api.github.com/repos/octo/repository/commits/main/check-runs?page=2>; rel="next"'
+    });
+    transport.queue({ check_runs: [{ name: "CI / package" }, { name: "CI / test" }] });
+    const client = new GitHubClient("octo", "repository", transport);
+    await expect(client.listWorkflowCheckNames("main")).resolves.toEqual([
+      "CI / package",
+      "CI / test"
+    ]);
+
+    const malformed = new RecordingTransport();
+    malformed.queue({ default_branch: 12 });
+    await expect(
+      new GitHubClient("octo", "repository", malformed).getDefaultBranch()
+    ).rejects.toThrow(/default_branch/i);
+  });
 });
 
 describe("GitHub HTTP transport", () => {
@@ -76,5 +107,46 @@ describe("GitHub HTTP transport", () => {
     }
     expect(message).not.toContain("supersecret123");
     expect(message).toContain("REDACTED");
+  });
+
+  it("does not retry permanent authorization failures", async () => {
+    const fakeFetch = vi.fn(async () => ({
+      status: 401,
+      headers: { entries: () => [][Symbol.iterator]() },
+      text: async () => '{"message":"bad credentials"}'
+    })) as unknown as FetchLike;
+    const transport = new FetchGitHubTransport("test-token", fakeFetch);
+    await expect(transport.request("GET", "/test")).rejects.toMatchObject({ status: 401 });
+    expect(fakeFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("bounds network retries and rejects malformed successful JSON", async () => {
+    const failingFetch = vi.fn(async () => {
+      throw new TypeError("network unavailable");
+    }) as unknown as FetchLike;
+    const transport = new FetchGitHubTransport(
+      "test-token",
+      failingFetch,
+      "https://api.github.com",
+      {
+        maxAttempts: 2,
+        sleep: async () => undefined
+      }
+    );
+    await expect(transport.request("GET", "/test")).rejects.toThrow(/bounded attempts/i);
+    expect(failingFetch).toHaveBeenCalledTimes(2);
+
+    const malformedFetch = vi.fn(async () => ({
+      status: 200,
+      headers: { entries: () => [][Symbol.iterator]() },
+      text: async () => "not-json"
+    })) as unknown as FetchLike;
+    await expect(
+      new FetchGitHubTransport("test-token", malformedFetch).request("GET", "/test")
+    ).rejects.toThrow(/malformed JSON/i);
+  });
+
+  it("rejects empty tokens before making a request", () => {
+    expect(() => new FetchGitHubTransport("   ")).toThrow(/empty/i);
   });
 });

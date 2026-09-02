@@ -1,6 +1,10 @@
-import type { ContractRuleset, GitHubRuleset } from "./types.js";
+import type { ContractRuleset, GitHubRuleset, MergeMethod } from "./types.js";
 
-export function desiredRuleset(contract: ContractRuleset, defaultBranch: string): GitHubRuleset {
+export function desiredRuleset(
+  contract: ContractRuleset,
+  defaultBranch: string,
+  mergeMethod: MergeMethod = "squash"
+): GitHubRuleset {
   const include = contract.branches.map((branch) =>
     branch === "~DEFAULT_BRANCH" ? `refs/heads/${defaultBranch}` : branch
   );
@@ -16,7 +20,8 @@ export function desiredRuleset(contract: ContractRuleset, defaultBranch: string)
         dismiss_stale_reviews_on_push: false,
         require_code_owner_review: false,
         require_last_push_approval: false,
-        required_review_thread_resolution: contract.rules.requireResolvedConversations
+        required_review_thread_resolution: contract.rules.requireResolvedConversations,
+        allowed_merge_methods: [mergeMethod]
       }
     });
   }

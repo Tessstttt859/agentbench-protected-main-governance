@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { writePlanArtifacts } from "../src/artifacts.js";
 import { buildPlan } from "../src/planner.js";
-import { contract, state } from "./helpers.js";
+import { contract, expectedRuleset, state } from "./helpers.js";
 
 describe("plan artifacts", () => {
   it("writes byte-identical output for identical inputs", async () => {
@@ -25,5 +25,20 @@ describe("plan artifacts", () => {
     await writePlanArtifacts(buildPlan(contract(), state([])), json, markdown);
     expect(await readFile(json, "utf8")).not.toContain(directory);
     expect(await readFile(markdown, "utf8")).not.toContain(directory);
+  });
+
+  it("reports unmanaged rulesets and missing checks without volatile data", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "governance-plan-"));
+    const json = join(directory, "plan.json");
+    const markdown = join(directory, "plan.md");
+    const plan = buildPlan(contract(), {
+      ...state([{ ...expectedRuleset(9), name: "manual/security" }]),
+      workflowChecks: []
+    });
+    await writePlanArtifacts(plan, json, markdown);
+    const summary = await readFile(markdown, "utf8");
+    expect(summary).toContain("manual/security");
+    expect(summary).toContain("missing: `CI / test`");
+    expect(summary).not.toMatch(/generatedAt|Authorization|Bearer/i);
   });
 });

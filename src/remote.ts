@@ -20,6 +20,12 @@ export function parseGitHubRemote(remote: string): RepositoryCoordinates {
     if (owner && repository) return { owner, repository };
   }
 
+  const sshUrl = /^ssh:\/\/git@github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/.exec(value);
+  if (sshUrl) {
+    const [, owner, repository] = sshUrl;
+    if (owner && repository) return { owner, repository };
+  }
+
   throw new PolicyError("origin is not a supported GitHub remote", "INVALID_REMOTE");
 }
 
