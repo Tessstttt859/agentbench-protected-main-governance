@@ -52,6 +52,7 @@ export interface RepositoryState {
   owner: string;
   repository: string;
   defaultBranch: string;
+  defaultBranchSha: string;
   rulesets: GitHubRuleset[];
   workflowChecks: string[];
 }
@@ -65,7 +66,9 @@ export interface GovernancePlan {
   schemaVersion: 1;
   repository: string;
   defaultBranch: string;
-  generatedAt?: string;
+  defaultBranchSha: string;
+  observedWorkflowChecks: string[];
+  missingWorkflowChecks: string[];
   actions: PlanAction[];
   preservedUnmanagedRulesets: string[];
 }

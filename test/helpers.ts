@@ -24,6 +24,7 @@ export function state(rulesets: GitHubRuleset[] = []): RepositoryState {
     owner: "octo-tester",
     repository: "agentbench-protected-main-governance",
     defaultBranch: "main",
+    defaultBranchSha: "0123456789abcdef0123456789abcdef01234567",
     workflowChecks: ["CI / package", "CI / test"],
     rulesets
   };
